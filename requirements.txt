@@ -3,4 +3,7 @@ flask-cors
 openai
 PyPDF2
 python-docx
-gunicorn
+chromadb
+langchain
+langchain-community
+langchain-openai
