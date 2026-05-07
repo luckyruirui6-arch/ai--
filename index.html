@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>化工工艺AI知识库助手</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0a1a2e 0%, #0c2a3b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 550px;
+            height: 92vh;
+            max-height: 850px;
+            background: rgba(15, 25, 35, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(66, 153, 225, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 14px 20px;
+            background: rgba(0, 20, 40, 0.8);
+            border-bottom: 1px solid #2c5282;
+            text-align: center;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #2b6cb0, #4299e1);
+            border-radius: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 12px rgba(0, 100, 200, 0.4);
+        }
+
+        .header-text h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            letter-spacing: 1px;
+        }
+
+        .header-text p {
+            font-size: 0.65rem;
+            color: #90cdf4;
+            margin-top: 4px;
+        }
+
+        .badge-group {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .badge {
+            font-size: 0.55rem;
+            background: #1e3a5f;
+            padding: 3px 10px;
+            border-radius: 20px;
+            color: #bee3f8;
+        }
+
+        .quick-panel {
+            padding: 8px 12px;
+            background: #0f1e2c;
+            border-bottom: 1px solid #2d3748;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: thin;
+        }
+        .quick-panel::-webkit-scrollbar { height: 3px; }
+        .quick-panel-btn {
+            background: #1e2f3f;
+            border: 1px solid #4299e1;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: #bee3f8;
+            transition: all 0.2s;
+        }
+        .quick-panel-btn:active { transform: scale(0.96); background: #2b6cb0; }
+
+        .knowledge-panel {
+            background: #0a141f;
+            border-bottom: 1px solid #2c5282;
+            padding: 8px 12px;
+        }
+        .upload-area {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .file-label {
+            background: #2b6cb0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            color: white;
+            border: none;
+        }
+        .file-list {
+            max-height: 80px;
+            overflow-y: auto;
+            font-size: 0.65rem;
+            color: #a0aec0;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 6px;
+            border-bottom: 1px solid #2d3748;
+        }
+        .del-doc {
+            color: #fc8181;
+            cursor: pointer;
+            font-size: 0.6rem;
+        }
+
+        .control-bar {
+            padding: 6px 12px;
+            background: #111e2a;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #2c5282;
+        }
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.65rem;
+            color: #cbd5e0;
+        }
+        select, .control-item button {
+            background: #1a2c3c;
+            border: 1px solid #4a5568;
+            border-radius: 16px;
+            padding: 4px 10px;
+            color: #e2e8f0;
+            font-size: 0.65rem;
+        }
+        .control-item button { cursor: pointer; }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-messages::-webkit-scrollbar { width: 4px; }
+        .message {
+            display: flex;
+            flex-direction: column;
+            animation: fadeInUp 0.2s ease-out;
+        }
+        .message.user { align-items: flex-end; }
+        .message.assistant { align-items: flex-start; }
+        .message-content { max-width: 88%; }
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            line-height: 1.45;
+            font-size: 0.85rem;
+            word-wrap: break-word;
+            position: relative;
+        }
+        .user .bubble {
+            background: #2b6cb0;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .assistant .bubble {
+            background: #1e2a3a;
+            color: #edf2f7;
+            border-bottom-left-radius: 4px;
+            border-left: 3px solid #4299e1;
+        }
+        .assistant .bubble pre { background: #0f172a; padding: 6px; border-radius: 6px; overflow-x: auto; }
+        .copy-btn {
+            position: absolute;
+            right: 6px;
+            bottom: 4px;
+            background: #2d3748;
+            font-size: 0.55rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            cursor: pointer;
+            color: #a0aec0;
+        }
+        .assistant .bubble:hover .copy-btn { opacity: 1; }
+
+        .chat-input {
+            padding: 12px;
+            background: #0f1e2c;
+            border-top: 1px solid #2c5282;
+            display: flex;
+            gap: 8px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px 14px;
+            background: #1a2c3c;
+            border: 1px solid #4a5568;
+            border-radius: 30px;
+            color: white;
+            font-family: inherit;
+            outline: none;
+        }
+        .chat-input input:focus { border-color: #4299e1; }
+        .chat-input button {
+            background: #2b6cb0;
+            border: none;
+            padding: 0 18px;
+            border-radius: 30px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+        .typing { display: flex; gap: 4px; padding: 8px 12px; }
+        .typing span {
+            width: 6px;
+            height: 6px;
+            background: #90cdf4;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+            40% { transform: translateY(-6px); opacity: 1; }
+        }
+        .status-bar {
+            padding: 6px 12px;
+            font-size: 0.55rem;
+            background: #07121c;
+            color: #718096;
+            display: flex;
+            justify-content: space-between;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="avatar">⚙️🧪</div>
+        <div class="header-text">
+            <h1>化工工艺AI知识库助手</h1>
+            <p>工艺问答 · 设备故障 · 安全规范 · 新员工培训</p>
+            <div class="badge-group">
+                <span class="badge">🔧 聚合工艺</span>
+                <span class="badge">⚠️ 应急处置</span>
+                <span class="badge">📄 知识库优先</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 化工快捷提问按钮区 -->
+    <div class="quick-panel">
+        <button class="quick-panel-btn" onclick="quickSend('聚合工艺开机完整操作步骤')">▶ 开机步骤</button>
+        <button class="quick-panel-btn" onclick="quickSend('聚合工艺停机应急操作流程')">⏹️ 停机应急</button>
+        <button class="quick-panel-btn" onclick="quickSend('反应釜温度异常偏高原因及处理方法')">🌡️ 反应釜超温</button>
+        <button class="quick-panel-btn" onclick="quickSend('反应釜压力波动大排查步骤')">📊 压力波动</button>
+        <button class="quick-panel-btn" onclick="quickSend('车间日常巡检关键点位及参数标准')">🔍 巡检标准</button>
+        <button class="quick-panel-btn" onclick="quickSend('动火作业安全规范及审批流程')">🔥 动火作业</button>
+        <button class="quick-panel-btn" onclick="quickSend('受限空间作业操作要求')">🚧 受限空间</button>
+        <button class="quick-panel-btn" onclick="quickSend('化工物料泄漏应急处置步骤')">⚠️ 泄漏处置</button>
+    </div>
+
+    <!-- 文档知识库专区 -->
+    <div class="knowledge-panel">
+        <div class="upload-area">
+            <label class="file-label">📂 上传化工文档
+                <input type="file" id="docUpload" accept=".pdf,.docx,.txt,.md" style="display:none" onchange="uploadDocument()">
+            </label>
+            <button class="file-label" style="background:#2d3748;" onclick="document.getElementById('docUpload').click()">选择文件</button>
+        </div>
+        <div id="docList" class="file-list">📄 已上传文档：暂无</div>
+    </div>
+
+    <div class="control-bar">
+        <div class="control-item">模型: <select id="modelSelector"><option value="qwen-turbo">Turbo</option><option value="qwen-plus">Plus</option></select></div>
+        <div class="control-item">🌐 <input type="checkbox" id="searchToggle" checked> 联网搜索</div>
+        <div class="control-item"><button onclick="clearHistory()">🗑️ 清空对话</button></div>
+    </div>
+
+    <div class="chat-messages" id="messages">
+        <div class="message assistant">
+            <div class="bubble">⚙️ 化工工艺AI知识库已就绪。<br>📘 请先上传操作规程/安全规范等文件，我将严格基于文档内容提供专业、步骤化的解答。<br>💡 试试上方快捷按钮或提问反应釜故障排查。</div>
+        </div>
+    </div>
+
+    <div class="chat-input">
+        <input type="text" id="userInput" placeholder="输入化工工艺问题..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button id="voiceBtn" onclick="startVoiceInput()">🎤</button>
+        <button onclick="sendMessage()">发送</button>
+    </div>
+    <div class="status-bar">
+        <span id="statusText">📚 知识库模式 | 基于内部文档回答</span>
+        <span id="responseTime"></span>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // ✅ 后端地址 - 根据您的情况选择
+    // ============================================================
+    // 本机使用（后端和前端在同一台电脑）：
+    const API_BASE = 'http://localhost:5000';
+    
+    // 如果要让同一WiFi的手机访问，改成您的局域网IP：
+    // const API_BASE = 'http://172.20.10.3:5000';
+    
+    let sessionId = localStorage.getItem('sessionId') || '';
+    let isGenerating = false;
+
+    if (!sessionId) {
+        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        localStorage.setItem('sessionId', sessionId);
+    }
+    
+    function getApiUrl(path) {
+        return API_BASE + path;
+    }
+
+    async function loadDocumentsList() {
+        try {
+            const res = await fetch(getApiUrl(`/api/documents?session_id=${sessionId}`));
+            const data = await res.json();
+            const docs = data.documents || [];
+            const container = document.getElementById('docList');
+            if (docs.length === 0) {
+                container.innerHTML = '📄 已上传文档：暂无';
+                return;
+            }
+            let html = '';
+            docs.forEach((doc, idx) => {
+                html += `<div class="file-item"><span>📁 ${doc.filename}</span><span class="del-doc" onclick="deleteDoc(${idx})">删除</span></div>`;
+            });
+            container.innerHTML = html;
+        } catch(e) {
+            console.log('加载文档列表失败');
+        }
+    }
+
+    async function uploadDocument() {
+        const fileInput = document.getElementById('docUpload');
+        const file = fileInput.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('session_id', sessionId);
+        try {
+            const res = await fetch(getApiUrl('/api/upload'), { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ 文档「${data.filename}」已加入知识库`);
+                loadDocumentsList();
+            } else {
+                alert('上传失败: ' + data.error);
+            }
+        } catch(e) {
+            alert('上传出错: ' + e.message);
+        }
+        fileInput.value = '';
+    }
+
+    async function deleteDoc(idx) {
+        if (!confirm('删除文档后，AI将不再基于其内容回答，确定吗？')) return;
+        try {
+            const res = await fetch(getApiUrl(`/api/documents/${idx}?session_id=${sessionId}`), { method: 'DELETE' });
+            if (res.ok) {
+                loadDocumentsList();
+            } else {
+                alert('删除失败');
+            }
+        } catch(e) {
+            alert('删除失败');
+        }
+    }
+
+    function quickSend(q) {
+        document.getElementById('userInput').value = q;
+        sendMessage();
+    }
+
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.lang = 'zh-CN';
+        recognition.continuous = false;
+        recognition.onresult = (e) => {
+            document.getElementById('userInput').value = e.results[0][0].transcript;
+            sendMessage();
+        };
+        recognition.onerror = () => { alert('语音识别失败，请重试'); };
+    }
+    function startVoiceInput() {
+        if (recognition) {
+            recognition.start();
+            const btn = document.getElementById('voiceBtn');
+            btn.style.background = '#e53e3e';
+            setTimeout(() => { btn.style.background = '#2b6cb0'; }, 1000);
+        } else {
+            alert('浏览器不支持语音输入');
+        }
+    }
+
+    async function sendMessage() {
+        if (isGenerating) {
+            alert('请等待回答完成');
+            return;
+        }
+        const input = document.getElementById('userInput');
+        const message = input.value.trim();
+        if (!message) return;
+        input.value = '';
+        addMessage(message, 'user');
+        isGenerating = true;
+        const startTime = Date.now();
+        showTyping();
+
+        const model = document.getElementById('modelSelector').value;
+        const search = document.getElementById('searchToggle').checked;
+
+        try {
+            const response = await fetch(getApiUrl('/api/chat/stream'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message, session_id: sessionId, model, search })
+            });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullReply = '';
+            let bubbleDiv = null;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                for (let line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+                        try {
+                            const json = JSON.parse(data);
+                            if (json.content) {
+                                fullReply += json.content;
+                                if (!bubbleDiv) {
+                                    bubbleDiv = createAssistantBubble();
+                                }
+                                bubbleDiv.querySelector('.bubble').innerHTML = renderMarkdown(fullReply);
+                                scrollToBottom();
+                            }
+                            if (json.session_id) {
+                                sessionId = json.session_id;
+                                localStorage.setItem('sessionId', sessionId);
+                            }
+                            if (json.error) {
+                                addMessage('后端错误: ' + json.error, 'assistant');
+                            }
+                        } catch(e) {}
+                    }
+                }
+            }
+            removeTyping();
+            if (fullReply) {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById('responseTime').innerHTML = `⏱️ ${elapsed}s`;
+                setTimeout(() => { document.getElementById('responseTime').innerHTML = ''; }, 2000);
+            }
+        } catch(err) {
+            removeTyping();
+            addMessage('请求失败: ' + err.message, 'assistant');
+        }
+        isGenerating = false;
+    }
+
+    function createAssistantBubble() {
+        const container = document.getElementById('messages');
+        const div = document.createElement('div');
+        div.className = 'message assistant';
+        div.innerHTML = `<div class="message-content"><div class="bubble"></div><div class="timestamp">${getTime()}</div></div>`;
+        container.appendChild(div);
+        const bubble = div.querySelector('.bubble');
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.textContent = '复制';
+        copyBtn.onclick = function() {
+            navigator.clipboard.writeText(bubble.innerText.replace('复制', ''));
+            copyBtn.textContent = '✓';
+            setTimeout(() => { copyBtn.textContent = '复制'; }, 1500);
+        };
+        bubble.appendChild(copyBtn);
+        return div;
+    }
+
+    function addMessage(text, role) {
+        const container = document.getElementById('messages');
+        const div = document.createElement('div');
+        div.className = `message ${role}`;
+        const displayText = role === 'user' ? escapeHtml(text) : renderMarkdown(text);
+        const copyBtnHtml = role === 'assistant' ? `<button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.innerText.replace('复制',''))">复制</button>` : '';
+        div.innerHTML = `<div class="message-content"><div class="bubble">${displayText}${copyBtnHtml}</div><div class="timestamp">${getTime()}</div></div>`;
+        container.appendChild(div);
+        scrollToBottom();
+    }
+
+    let typingDiv = null;
+    function showTyping() {
+        typingDiv = document.createElement('div');
+        typingDiv.className = 'message assistant';
+        typingDiv.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
+        document.getElementById('messages').appendChild(typingDiv);
+        scrollToBottom();
+    }
+    function removeTyping() {
+        if (typingDiv) typingDiv.remove();
+        typingDiv = null;
+    }
+    function scrollToBottom() {
+        const container = document.getElementById('messages');
+        container.scrollTop = container.scrollHeight;
+    }
+    function renderMarkdown(text) {
+        if (typeof marked !== 'undefined') {
+            return marked.parse(text);
+        }
+        return text.replace(/\n/g, '<br>');
+    }
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    function getTime() {
+        const now = new Date();
+        return `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    }
+    function clearHistory() {
+        if (confirm('清空对话历史？')) {
+            document.getElementById('messages').innerHTML = '';
+            addMessage('会话已重置，知识库文档保留。', 'assistant');
+        }
+    }
+    
+    loadDocumentsList();
+</script>
+</body>
+</html>
