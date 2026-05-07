@@ -3,3 +3,4 @@ flask-cors
 openai
 PyPDF2
 python-docx
+gunicorn
